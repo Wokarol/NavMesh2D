@@ -202,7 +202,7 @@ namespace Wokarol.NavMesh2D
         }
         bool Isexcluded(GameObject obj)
         {
-            return obj.GetComponent<NavMeshObstacle>() != null;
+            return !obj.isStatic || obj.GetComponent<NavMeshObstacle>() != null;
         }
         private void OnDrawGizmosSelected()
         {

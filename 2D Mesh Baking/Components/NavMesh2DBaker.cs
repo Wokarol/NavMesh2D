@@ -80,7 +80,7 @@ namespace Wokarol.NavMesh2D
             Vector3 colliderZSize = Vector3.forward * collidersDepth;
             var boxColliders2D = FindObjectsOfType<BoxCollider2D>();
             foreach (var collider in boxColliders2D) {
-                if (collider.GetComponent<NavMeshObstacle>() != null) continue;
+                if (Isexcluded(collider.gameObject)) continue;
                 var col = GetObjectCopy(collider.gameObject, createdObjects).AddComponent<BoxCollider>();
                 col.size = (Vector3)collider.size + colliderZSize;
                 col.center = (Vector3)collider.offset;

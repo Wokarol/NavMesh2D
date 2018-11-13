@@ -5,17 +5,19 @@ namespace Wokarol.NavMesh2D
 {
     internal static class Collider2DTo3DUtils
     {
-        internal static Mesh GetMeshFromPath(Vector2[] path)
+        internal static Mesh GetMeshFromPath(Vector2[] path, bool loop)
         {
             var mesh = new Mesh();
             var verts = new Vector3[path.Length * 2];
-            var tris = new int[path.Length * 6];
+            var tris = new int[path.Length * 6 - (loop?0:6)];
             int max = verts.Length;
             for (int i = 0; i < path.Length; i++) {
+
                 int n = i * 2;
                 verts[n] = (Vector3)path[i] + (Vector3.back * 20);
                 verts[n + 1] = (Vector3)path[i] + (Vector3.back * -20);
 
+                if (i == path.Length - 1 && !loop) continue;
                 int tIndex = i * 6;
                 tris[tIndex] = n;
                 tris[tIndex + 1] = n + 1;
@@ -43,7 +45,7 @@ namespace Wokarol.NavMesh2D
             var box = obj.AddComponent<BoxCollider>();
             box.size = new Vector3(edgeRadius, v.magnitude, 20);
 
-            var angle = Vector2.Angle(Vector2.up, -v);
+            var angle = Vector2.SignedAngle(Vector2.up, -v);
             obj.transform.rotation = Quaternion.Euler(0, 0, angle);
 
             return obj;

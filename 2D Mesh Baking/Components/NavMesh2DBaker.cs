@@ -50,6 +50,7 @@ namespace Wokarol.NavMesh2D
             ConvertCapsules(createdObjects);
             ConvertPolygons(createdObjects);
             ConvertComposites(createdObjects);
+            ConvertEdgeColliders(createdObjects);
         }
 
         private void ConvertComposites(List<GameObject> createdObjects)
@@ -68,7 +69,7 @@ namespace Wokarol.NavMesh2D
                 for (int i = 0; i < collider.pathCount; i++) {
                     {
                         var path = collider.GetPath(i);
-                        Mesh mesh = Collider2DTo3DUtils.GetMeshFromPath(path);
+                        Mesh mesh = Collider2DTo3DUtils.GetMeshFromPath(path, true);
                         var meshCollider = GetObjectCopy(collider.gameObject, createdObjects).AddComponent<MeshCollider>();
                         meshCollider.sharedMesh = mesh;
                     }
@@ -153,6 +154,14 @@ namespace Wokarol.NavMesh2D
                 }
             }
         }
+        private void ConvertEdgeColliders(List<GameObject> createdObjects)
+        {
+            var edgeColliders = FindObjectsOfType<EdgeCollider2D>();
+            foreach (var collider in edgeColliders) {
+                if (Isexcluded(collider.gameObject)) continue;
+                ConvertEdgeCollider(collider, createdObjects);
+            }
+        }
 
         private void ConvertCoposite(CompositeCollider2D collider, List<GameObject> createdObjects)
         {
@@ -161,7 +170,7 @@ namespace Wokarol.NavMesh2D
                     var path = new Vector2[collider.GetPathPointCount(i)];
                     collider.GetPath(i, path);
 
-                    Mesh mesh = Collider2DTo3DUtils.GetMeshFromPath(path);
+                    Mesh mesh = Collider2DTo3DUtils.GetMeshFromPath(path, true);
                     var obj = GetObjectCopy(collider.gameObject, createdObjects);
                     var meshCollider = obj.AddComponent<MeshCollider>();
                     meshCollider.sharedMesh = mesh;
@@ -170,22 +179,42 @@ namespace Wokarol.NavMesh2D
                 for (int i = 0; i < collider.pathCount; i++) {
                     var path = new Vector2[collider.GetPathPointCount(i)];
                     collider.GetPath(i, path);
-                    // Converting point to 3D
-                    var obj = GetObjectCopy(collider.gameObject, createdObjects);
-                    obj.transform.localPosition = Vector3.zero;
-                    for (int j = 0; j < path.Length; j++) {
-                        // Create circle
-                        var capsule = obj.AddComponent<CapsuleCollider>();
-                        capsule.direction = 2;
-                        capsule.center = path[j];
-                        capsule.radius = collider.edgeRadius;
-                        capsule.height = 20;
-                    }
-                    // Converting Edges to 3D
-                    for (int j = 0; j < path.Length; j++) {
-                        Collider2DTo3DUtils.CreateLine(path[j], path[(j + 1) % path.Length], collider.edgeRadius * 2, obj.transform);
-                    }
+                    ConvertPath(collider.gameObject, collider.edgeRadius, createdObjects, path, true);
                 }
+            }
+        }
+        private void ConvertEdgeCollider(EdgeCollider2D collider, List<GameObject> createdObjects)
+        {
+            if (collider.edgeRadius < Mathf.Epsilon) {
+                var path = collider.points;
+
+                Mesh mesh = Collider2DTo3DUtils.GetMeshFromPath(path, false);
+                var obj = GetObjectCopy(collider.gameObject, createdObjects);
+                var meshCollider = obj.AddComponent<MeshCollider>();
+                meshCollider.sharedMesh = mesh;
+            } else {
+                var path = collider.points;
+                ConvertPath(collider.gameObject, collider.edgeRadius, createdObjects, path, false);
+            }
+        }
+
+        private void ConvertPath(GameObject gameObject, float edgeRadius, List<GameObject> createdObjects, Vector2[] path, bool loop)
+        {
+            // Converting point to 3D
+            var obj = GetObjectCopy(gameObject, createdObjects);
+            obj.transform.localPosition = Vector3.zero;
+            for (int j = 0; j < path.Length; j++) {
+                // Create circle
+                var capsule = obj.AddComponent<CapsuleCollider>();
+                capsule.direction = 2;
+                capsule.center = path[j];
+                capsule.radius = edgeRadius;
+                capsule.height = 20;
+            }
+            // Converting Edges to 3D
+            for (int j = 0; j < path.Length; j++) {
+                if (j == path.Length - 1 && !loop) continue;
+                Collider2DTo3DUtils.CreateLine(path[j], path[(j + 1) % path.Length], edgeRadius * 2, obj.transform);
             }
         }
 
